@@ -5,7 +5,7 @@ const oracledb = require('oracledb');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../../service/email');
-const { send } = require('express/lib/response');
+const verifyToken = require('../../service/verifyToken');
 
 // Register
 // 1. Menerima kiriman username, email, password, confirm-password
@@ -204,6 +204,16 @@ router.post('/login', async (req, res) => {
         return res.cookie("token", token).json({ status: true, token, data: results.data });
     } else {
         return res.status(401).json({ status: false, message: "Username or Password is incorrect!" });
+    }
+})
+
+router.get('/logout', verifyToken, async (req, res) => {
+    try {
+        res.clearCookie("token");
+        return res.json({ status: true, message: "Logged Out!" })
+    } catch (err) {
+        console.error(err);
+        return res.status(403).json({ status: false, message: err.message })
     }
 })
 

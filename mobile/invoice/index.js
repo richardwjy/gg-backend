@@ -70,6 +70,9 @@ router.post('/approve', async (req, res) => {
     const todayDt = new Date();
     let connection;
     let results;
+    if (!invoice_id && !signature) {
+        return res.status(422).json({ message: "JSON has no invoice_id and signature attribute" });
+    }
     try {
         connection = await oracledb.getConnection(config);
         results = await connection.execute(
@@ -107,6 +110,9 @@ router.post('/reject', async (req, res) => {
     const todayDt = new Date();
     let connection;
     let results;
+    if (!invoice_id && !signature) {
+        return res.status(422).json({ message: "JSON has no invoice_id and signature attribute" });
+    }
     try {
         connection = await oracledb.getConnection(config);
         results = await connection.execute(

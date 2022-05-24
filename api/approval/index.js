@@ -169,16 +169,19 @@ router.post('/create', async (req, res) => {
 })
 
 router.post('/approve', async (req, res) => {
-    const { id } = req.params;
+    const { id, signature } = req.body;
     const todayDt = new Date();
     const { USERNAME: apvBy } = req.user;
     let connection;
     let results;
+    if (!id && !signature) {
+        return res.status(422).json({ message: "JSON has no id and signature attribute" });
+    }
     try {
         connection = await oracledb.getConnection(config.config);
         results = await connection.execute(
-            `UPDATE ${InvoiceTable} SET STATUS = :stat,APPROVED_BY = :apvBy, APPROVED_DATE = :apvDt WHERE ID=:id`
-            , { id, stat: "APPROVED", apvBy: apvBy, apvDt: todayDt }
+            `UPDATE ${InvoiceTable} SET STATUS = :stat, SIGNATURE = :signature,APPROVED_BY = :apvBy, APPROVED_DATE = :apvDt WHERE ID=:id`
+            , { id, stat: "APPROVED", signature, apvBy: apvBy, apvDt: todayDt }
             , { autoCommit: true }
         )
         console.log(results);
@@ -201,11 +204,14 @@ router.post('/approve', async (req, res) => {
 })
 
 router.post('/reject', async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.body;
     const todayDt = new Date();
     const { USERNAME: updBy } = req.user;
     let connection;
     let results;
+    if (!id && !signature) {
+        return res.status(422).json({ message: "JSON has no id and signature attribute" });
+    }
     try {
         connection = await oracledb.getConnection(config.config);
         results = await connection.execute(

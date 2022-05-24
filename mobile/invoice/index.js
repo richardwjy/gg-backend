@@ -9,6 +9,25 @@ const InvoiceTypeTable = process.env.MS_INV_TYPE;
 
 router.use(verifyMobile);
 
+const statusQueryBuilder = (status) => {
+    let query = '';
+    switch (status) {
+        case "NEW":
+            query = `AND STATUS = 'NEW'`;
+            break;
+        case "APPROVED":
+            query = `AND STATUS = 'APPROVED'`;
+            break;
+        case "UPDATED":
+            query = `AND STATUS = 'UPDATED'`;
+            break;
+        case "REJECTED":
+            query = `AND STATUS = 'REJECTED'`;
+            break;
+    }
+    return query;
+}
+
 router.get('/user/:user_id', async (req, res) => {
     // Get all invoice
     const { user_id } = req.params;
@@ -32,6 +51,11 @@ router.get('/user/:user_id', async (req, res) => {
         if (page > totalPage) {
             throw new Error(`The maximum page is: ${totalPage}, the requested page: ${page} is not available!`);
         }
+        let statusQuery = '';
+        if (req.query.hasOwnProperty("status")) {
+            statusQuery = statusQueryBuilder(req.query.status);
+        }
+        console.log(statusQuery);
         results = await connection.execute(
             `SELECT * FROM 
                 ${InvoiceTable} inv,
@@ -40,11 +64,11 @@ router.get('/user/:user_id', async (req, res) => {
                 1=1
                 AND inv.INVOICE_TYPE_ID = invType.ID
                 AND invType.USER_PIC_ID = :userPicId
-                AND STATUS = 'NEW'
+                ${statusQuery}
             ORDER BY inv.ID OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY
             `
             , [user_id, offset, limit]
-            , { outFormat: oracledb.OUT_FORMAT_OBJECT }
+            , { outFormat: oracledb.OUT_FORMAT_OBJECT, fetchInfo: { "SIGNATURE": { type: oracledb.STRING } } }
         )
     } catch (err) {
         console.error(err);

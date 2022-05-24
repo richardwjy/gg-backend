@@ -43,7 +43,7 @@ router.get('/user/:user_id', async (req, res) => {
                 AND STATUS = 'NEW'
             ORDER BY inv.ID OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY
             `
-            , [user_id, limit, offset]
+            , [user_id, offset, limit]
             , { outFormat: oracledb.OUT_FORMAT_OBJECT }
         )
     } catch (err) {

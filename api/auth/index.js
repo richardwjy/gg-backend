@@ -240,7 +240,7 @@ router.post('/reset-password', async (req, res) => {
     const { id, password } = req.body;
     if (id && password) {
         const salt = bcrypt.genSaltSync(Number(process.env.SALT_ROUNDS));
-        const hashedPassword = bcrypt.hashSync(newUser.password, salt);
+        const hashedPassword = bcrypt.hashSync(password, salt);
         let connection;
         let data;
         try {

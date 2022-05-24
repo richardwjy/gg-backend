@@ -28,6 +28,45 @@ const statusQueryBuilder = (status) => {
     return query;
 }
 
+router.get('/:invoice_id', async (req, res) => {
+    // Get all invoice
+    const { invoice_id } = req.params;
+    let connection;
+    let results;
+    let totalRows;
+    let totalPage;
+    try {
+        connection = await oracledb.getConnection(config);
+        results = await connection.execute(
+            `SELECT inv.* FROM 
+                ${InvoiceTable} inv,
+                ${InvoiceTypeTable} invType
+            WHERE 
+                1=1
+                AND inv.INVOICE_TYPE_ID = invType.ID
+                AND inv.ID = :invoiceId
+            `
+            , [invoice_id]
+            , { outFormat: oracledb.OUT_FORMAT_OBJECT, fetchInfo: { "SIGNATURE": { type: oracledb.STRING } } }
+        )
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ status: false, message: err.message || "Error while querying data from database" });
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (err) {
+                console.error(err);
+                return res.status(500).json({ status: false, message: "Error while closing database connection" });
+            }
+        }
+        if (results) {
+            return res.json({ status: true, data: results.rows, totalPage, totalRows });
+        }
+    }
+})
+
 router.get('/user/:user_id', async (req, res) => {
     // Get all invoice
     const { user_id } = req.params;
@@ -57,7 +96,7 @@ router.get('/user/:user_id', async (req, res) => {
         }
         console.log(statusQuery);
         results = await connection.execute(
-            `SELECT * FROM 
+            `SELECT inv.ID, inv.AMOUNT, inv.DESCRIPTION, inv.STATUS, inv.INVOICE_TYPE_ID,invType.INV_TYPE_NAME FROM 
                 ${InvoiceTable} inv,
                 ${InvoiceTypeTable} invType
             WHERE 

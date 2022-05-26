@@ -5,7 +5,6 @@ const config = getDbConfig(process.env.APP_ENV);
 const verifyToken = require('../../service/verifyToken');
 const { sendNotification } = require('../../service/PushNotification');
 const Redis = require('redis');
-const redisClient = require('../../service/redisClient');
 
 const InvoiceTable = process.env.INVOICE_TRX;
 const InvoiceTypeTable = process.env.MS_INV_TYPE;
@@ -22,11 +21,13 @@ const notify = async (invTypeId, conn) => {
         const redisClient = Redis.createClient({
             url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
         });
-        const fcmToken = await redisClient.get(`user-fcm:${results.rows[0].ID}`);
+        await redisClient.connect();
+        const fcmToken = await redisClient.get(`user-fcm:${results.rows[0].USER_PIC_ID}`);
+        console.log('TOKEN: ' + fcmToken);
         await redisClient.disconnect();
         if (fcmToken) {
             await sendNotification(
-                fcmToken,
+                "c32Na2MAQX-AB0OCNxrFvO:APA91bFYLa1FhF6cnlAGEbF3NcJg4uEDFbj6v6abHEVSh5Gtfj6MZ5oLa3L2CjYxl5JfdCcy9bmQ4tO8PIy6QxiNrVIGs6xZ1LqU7R3GKsyQUpgjAdsR0KUSuVKEZI-K9DnP-EJZjiw4",
                 {
                     notification: {
                         title: 'Gudang Garam Invoice Approval',

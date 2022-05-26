@@ -24,7 +24,7 @@ module.exports.sendNotification = (registrationToken = "c32Na2MAQX-AB0OCNxrFvO:A
     console.log(registrationToken);
     return new Promise((resolve, reject) => {
         admin.messaging().sendToDevice(registrationToken, message, options).then((response) => {
-            console.log(response.results[0].error);
+            console.log(response);
             resolve(response);
         }).catch((error) => {
             console.log(error)

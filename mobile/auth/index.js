@@ -50,6 +50,7 @@ router.post('/login', async (req, res) => {
     if (results.login) {
         delete results.data.PASSWORD;
         const token = jwt.sign({ ...results.data }, process.env.MOBILE_PRIVATE_KEY, { expiresIn: '10h' });
+        console.log(`user-fcm:${results.data.ID}`);
         const userFcmToken = await redisClient.getOrSetCache(`user-fcm:${results.data.ID}`, () => {
             return fcmToken;
         });

@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const oracledb = require('oracledb');
 const getDbConfig = require('../../service/getDbConfig');
 const config = getDbConfig(process.env.APP_ENV).config;
+const redisClient = require('../../service/redisClient');
 
 const UsersTable = process.env.MS_USERS;
 
@@ -43,12 +44,21 @@ const checkUserPassword = async (username, password) => {
 }
 
 router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, fcmToken } = req.body;
+    if (!username && !password && !fcmToken) { return res.status(422).json({ status: false, message: "Wrong Payload!" }) }
     const results = await checkUserPassword(username, password);
     if (results.login) {
         delete results.data.PASSWORD;
-        const token = jwt.sign(results.data, process.env.MOBILE_PRIVATE_KEY, { expiresIn: '10h' });
-        return res.json({ status: true, access_key: `Bearer ${token}`, data: results.data });
+        const token = jwt.sign({ ...results.data }, process.env.MOBILE_PRIVATE_KEY, { expiresIn: '10h' });
+        const userFcmToken = await redisClient.getOrSetCache(`user-fcm:${results.data.ID}`, () => {
+            return fcmToken;
+        });
+        return res.json({
+            status: true, access_key: `Bearer ${token}`, data: {
+                ...results.data
+                , userFcmToken
+            }
+        });
     } else {
         return res.status(401).json({ status: false, message: results.message || "Unauthorized" })
     }

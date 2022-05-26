@@ -3,11 +3,42 @@ const oracledb = require('oracledb');
 const getDbConfig = require('../../service/getDbConfig');
 const config = getDbConfig(process.env.APP_ENV);
 const verifyToken = require('../../service/verifyToken');
+const { sendNotification } = require('../../service/PushNotification');
+const Redis = require('redis');
+const redisClient = require('../../service/redisClient');
 
 const InvoiceTable = process.env.INVOICE_TRX;
 const InvoiceTypeTable = process.env.MS_INV_TYPE;
 
 router.use(verifyToken);
+
+const notify = async (invTypeId, conn) => {
+    try {
+        const results = await conn.execute(
+            `SELECT * FROM ${InvoiceTypeTable} WHERE ID = :id`
+            , [invTypeId]
+            , { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        const redisClient = Redis.createClient({
+            url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+        });
+        const fcmToken = await redisClient.get(`user-fcm:${results.rows[0].ID}`);
+        await redisClient.disconnect();
+        if (fcmToken) {
+            await sendNotification(
+                fcmToken,
+                {
+                    notification: {
+                        title: 'Gudang Garam Invoice Approval',
+                        body: '1 Invoice baru untuk diapprove!'
+                    }
+                }
+            )
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
 
 router.get('/all', async (req, res) => {
     let connection;
@@ -38,7 +69,7 @@ router.get('/all', async (req, res) => {
         )
     } catch (err) {
         console.log(err);
-        return res.status(500).json({ status: false, message: err.message });
+        return res.status(500).json({ status: false, message: err.message || "Internal error while sending notification" });
     } finally {
         if (connection) {
             try {
@@ -145,11 +176,16 @@ router.post('/create', async (req, res) => {
     try {
         connection = await oracledb.getConnection(config.config);
         results = await connection.execute(
-            `INSERT INTO ${InvoiceTable} (AMOUNT, DESCRIPTION, STATUS, INVOICE_TYPE_ID, CREATED_BY, CREATED_DATE) VALUES (:amount, :description, :status, :invTypeId, :createBy, :createDt)`
-            , { amount, description, status: "NEW", invTypeId, createBy: crtBy, createDt: todayDt }
+            `INSERT INTO ${InvoiceTable} (AMOUNT, DESCRIPTION, STATUS, INVOICE_TYPE_ID, CREATED_BY, CREATED_DATE) VALUES (:amount, :description, :status, :invTypeId, :createBy, :createDt)
+             RETURNING id, ROWID INTO :ids, :rids`
+            , {
+                amount, description, status: "NEW", invTypeId, createBy: crtBy, createDt: todayDt, ids: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }, rids: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
+            }
             , { autoCommit: true }
         )
-        console.log(results);
+        console.log(results.outBinds.ids[0]);
+        // Kirim notif ke userPicId di invTypeId
+        await notify(invTypeId, connection);
     } catch (err) {
         console.error(err);
         return res.status(500).json({ status: false, message: "Internal error while inserting data into database" });

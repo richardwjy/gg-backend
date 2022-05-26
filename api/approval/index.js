@@ -27,7 +27,7 @@ const notify = async (invTypeId, conn) => {
         await redisClient.disconnect();
         if (fcmToken) {
             await sendNotification(
-                "c32Na2MAQX-AB0OCNxrFvO:APA91bFYLa1FhF6cnlAGEbF3NcJg4uEDFbj6v6abHEVSh5Gtfj6MZ5oLa3L2CjYxl5JfdCcy9bmQ4tO8PIy6QxiNrVIGs6xZ1LqU7R3GKsyQUpgjAdsR0KUSuVKEZI-K9DnP-EJZjiw4",
+                fcmToken,
                 {
                     notification: {
                         title: 'Gudang Garam Invoice Approval',
@@ -47,6 +47,15 @@ router.get('/all', async (req, res) => {
     let totalPage;
     let countData;
     try {
+        await sendNotification(
+            "c32Na2MAQX-AB0OCNxrFvO:APA91bFYLa1FhF6cnlAGEbF3NcJg4uEDFbj6v6abHEVSh5Gtfj6MZ5oLa3L2CjYxl5JfdCcy9bmQ4tO8PIy6QxiNrVIGs6xZ1LqU7R3GKsyQUpgjAdsR0KUSuVKEZI-K9DnP-EJZjiw4",
+            {
+                notification: {
+                    title: 'Gudang Garam Invoice Approval',
+                    body: '1 Invoice baru untuk diapprove!'
+                }
+            }
+        )
         connection = await oracledb.getConnection(config.config);
         // Define pagination maxPage
         const countResults = await connection.execute(`SELECT COUNT(1) as count FROM ${InvoiceTable}`, {}, { outFormat: oracledb.OUT_FORMAT_OBJECT });

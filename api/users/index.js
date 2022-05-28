@@ -6,7 +6,7 @@ const getDbConfig = require('../../service/getDbConfig');
 const config = getDbConfig(process.env.APP_ENV);
 const verifyToken = require('../../service/verifyToken');
 
-// router.use(verifyToken);
+router.use(verifyToken);
 
 const users = [{ id: 1, name: "Richard" }, { id: 2, name: "Rostandy" }, { id: 3, name: "richard" }]
 
